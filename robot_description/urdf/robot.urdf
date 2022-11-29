@@ -1,173 +1,137 @@
-<?xml version="1.0"?>
-<robot name="visual">
+<?xml version="1.0" ?>
+<robot name="basic_mobile_bot" xmlns:xacro="http://ros.org/wiki/xacro">
 
-  <material name="blue">
-    <color rgba="0 0 0.8 1"/>
-  </material>
-  <material name="black">
-    <color rgba="0 0 0 1"/>
-  </material>
-  <material name="white">
-    <color rgba="1 1 1 1"/>
-  </material>
+  <xacro:property name="base_width" value="0.39"/>
+  <xacro:property name="base_length" value="0.70"/>
+  <xacro:property name="base_height" value="0.20"/>
+	
+  <xacro:property name="wheel_radius" value="0.14"/>
+  <xacro:property name="wheel_width" value="0.06"/>
+
+
+  <xacro:property name="wheel_ygap" value="0.035"/>
+
+  <xacro:property name="wheel_zoff" value="0.05"/>
+  <xacro:property name="wheel_xoff" value="0.221"/>
+
+  <xacro:property name="caster_xoff" value="0.217"/>
+
+  <xacro:include filename="$(find robot_description)/urdf/components/inertia.urdf.xacro" />
+
+  <link name="base_footprint"/>
+
+  <joint name="base_joint" type="fixed">
+    <parent link="base_footprint"/>
+    <child link="base_link" />
+    <origin xyz="0.0 0.0 ${(wheel_radius+wheel_zoff)}" rpy="0 0 0"/>
+  </joint>
 
   <link name="base_link">
     <visual>
       <geometry>
-        <cylinder length="0.6" radius="0.2"/>
+        <box size="${base_length} ${base_width} ${base_height}"/>
       </geometry>
-      <material name="blue"/>
+      <material name="Red">
+        <color rgba="${255/255} ${0/255} ${0/255} 1.0"/>
+      </material>
     </visual>
+
+    <collision>
+      <geometry>
+        <box size="${base_length} ${base_width} ${base_height}"/>
+      </geometry>
+    </collision>
+
+    <xacro:box_inertia m="40.0" w="${base_width}" d="${base_length}" h="${base_height}"/>
+    
   </link>
 
-  <link name="right_leg">
+  <gazebo reference="base_link">
+    <material>Gazebo/Red</material>
+  </gazebo>
+
+  <xacro:include filename="$(find robot_description)/urdf/components/drivewhl.urdf.xacro" />
+
+  <xacro:wheel prefix="drivewhl_l" x_reflect="-1" y_reflect="1" />
+  <xacro:wheel prefix="drivewhl_r" x_reflect="-1" y_reflect="-1" />
+
+  <link name="front_caster">
     <visual>
       <geometry>
-        <box size="0.6 0.1 0.2"/>
+        <sphere radius="${(wheel_radius+wheel_zoff-(base_height/2))}"/>
       </geometry>
-      <origin rpy="0 1.57075 0" xyz="0 0 -0.3"/>
-      <material name="white"/>
+      <material name="White">
+        <color rgba="${255/255} ${255/255} ${255/255} 1.0"/>
+      </material>
     </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <sphere radius="${(wheel_radius+wheel_zoff-(base_height/2))}"/>
+      </geometry>
+    </collision>
+    <xacro:sphere_inertia m="10.05" r="${(wheel_radius+wheel_zoff-(base_height/2))}"/>
   </link>
 
-  <joint name="base_to_right_leg" type="fixed">
+  <gazebo reference="front_caster">
+    <mu1>0.01</mu1>
+    <mu2>0.01</mu2>
+    <material>Gazebo/White</material>
+  </gazebo>
+
+  <joint name="caster_joint" type="fixed">
     <parent link="base_link"/>
-    <child link="right_leg"/>
-    <origin xyz="0 -0.22 0.25"/>
+    <child link="front_caster"/>
+    <origin xyz="${caster_xoff} 0.0 ${-(base_height/2)}" rpy="0 0 0"/>
   </joint>
-
-  <link name="right_base">
-    <visual>
-      <geometry>
-        <box size="0.4 0.1 0.1"/>
-      </geometry>
-      <material name="white"/>
-    </visual>
-  </link>
-
-  <joint name="right_base_joint" type="fixed">
-    <parent link="right_leg"/>
-    <child link="right_base"/>
-    <origin xyz="0 0 -0.6"/>
-  </joint>
-
-  <link name="right_front_wheel">
-    <visual>
-      <origin rpy="1.57075 0 0" xyz="0 0 0"/>
-      <geometry>
-        <cylinder length="0.1" radius="0.035"/>
-      </geometry>
-      <material name="black"/>
-    </visual>
-  </link>
-  <joint name="right_front_wheel_joint" type="fixed">
-    <parent link="right_base"/>
-    <child link="right_front_wheel"/>
-    <origin rpy="0 0 0" xyz="0.133333333333 0 -0.085"/>
-  </joint>
-
-  <link name="right_back_wheel">
-    <visual>
-      <origin rpy="1.57075 0 0" xyz="0 0 0"/>
-      <geometry>
-        <cylinder length="0.1" radius="0.035"/>
-      </geometry>
-      <material name="black"/>
-    </visual>
-  </link>
-  <joint name="right_back_wheel_joint" type="fixed">
-    <parent link="right_base"/>
-    <child link="right_back_wheel"/>
-    <origin rpy="0 0 0" xyz="-0.133333333333 0 -0.085"/>
-  </joint>
-
-  <link name="left_leg">
-    <visual>
-      <geometry>
-        <box size="0.6 0.1 0.2"/>
-      </geometry>
-      <origin rpy="0 1.57075 0" xyz="0 0 -0.3"/>
-      <material name="white"/>
-    </visual>
-  </link>
-
-  <joint name="base_to_left_leg" type="fixed">
+  
+  <!-- *********************** Camera SETUP *********************************  --> 
+  
+  <joint name="camera_joint" type="fixed">
     <parent link="base_link"/>
-    <child link="left_leg"/>
-    <origin xyz="0 0.22 0.25"/>
+    <child link="camera_link"/>
+    <origin xyz="${base_length/2} 0 ${base_height/2}" rpy="0 0 0"/>
   </joint>
 
-  <link name="left_base">
+  <link name="camera_link">
     <visual>
+      <origin rpy="0 ${pi/2} 0"/>
       <geometry>
-        <box size="0.4 0.1 0.1"/>
+        <cylinder radius="0.05" length="0.05"/>
       </geometry>
-      <material name="white"/>
+      <material name="blue">
+        <color rgba="0.0 0.0 1.0 1.0"/>
+      </material>
     </visual>
   </link>
 
-  <joint name="left_base_joint" type="fixed">
-    <parent link="left_leg"/>
-    <child link="left_base"/>
-    <origin xyz="0 0 -0.6"/>
-  </joint>
+  <gazebo reference="camera_link">
+      <material>Gazebo/Blue</material>
+      <sensor type="camera" name="camera">
+        <parent link="camera_link"/>
+        <update_rate>30.0</update_rate>
+        <camera>
+          <horizontal_fov>1.3962634</horizontal_fov>
+          <image>
+            <format>R8G8B8</format>
+            <width>800</width>
+            <height>800</height>
+          </image>
+          <clip>
+            <near>0.01</near>
+            <far>100</far>
+          </clip>
+        </camera>
 
-  <link name="left_front_wheel">
-    <visual>
-      <origin rpy="1.57075 0 0" xyz="0 0 0"/>
-      <geometry>
-        <cylinder length="0.1" radius="0.035"/>
-      </geometry>
-      <material name="black"/>
-    </visual>
-  </link>
-  <joint name="left_front_wheel_joint" type="fixed">
-    <parent link="left_base"/>
-    <child link="left_front_wheel"/>
-    <origin rpy="0 0 0" xyz="0.133333333333 0 -0.085"/>
-  </joint>
+        <plugin name="robot_camera_controller" filename="libgazebo_ros_camera.so">
+          <cameraName>camera</cameraName>
+          <alwaysOn>true</alwaysOn>
+          <updateRate>1.0</updateRate>
+          <imageTopicName>image_raw</imageTopicName>
+          <cameraInfoTopicName>camera_info</cameraInfoTopicName>
+          <frameName>camera_link</frameName>
+        </plugin>
+      </sensor>
+    </gazebo>
 
-  <link name="left_back_wheel">
-    <visual>
-      <origin rpy="1.57075 0 0" xyz="0 0 0"/>
-      <geometry>
-        <cylinder length="0.1" radius="0.035"/>
-      </geometry>
-      <material name="black"/>
-    </visual>
-  </link>
-  <joint name="left_back_wheel_joint" type="fixed">
-    <parent link="left_base"/>
-    <child link="left_back_wheel"/>
-    <origin rpy="0 0 0" xyz="-0.133333333333 0 -0.085"/>
-  </joint>
-
-  <link name="head">
-    <visual>
-      <geometry>
-        <sphere radius="0.2"/>
-      </geometry>
-      <material name="white"/>
-    </visual>
-  </link>
-  <joint name="head_swivel" type="fixed">
-    <parent link="base_link"/>
-    <child link="head"/>
-    <origin xyz="0 0 0.3"/>
-  </joint>
-
-  <link name="box">
-    <visual>
-      <geometry>
-        <box size="0.08 0.08 0.08"/>
-      </geometry>
-      <material name="blue"/>
-    </visual>
-  </link>
-
-  <joint name="tobox" type="fixed">
-    <parent link="head"/>
-    <child link="box"/>
-    <origin xyz="0.1814 0 0.1414"/>
-  </joint>
 </robot>
