@@ -17,12 +17,10 @@ FILE = Path(__file__).absolute()
 sys.path.append(FILE.parents[0].as_posix())
 
 from models.experimental import attempt_load
-from utils.datasets import LoadStreams, LoadImages
-from utils.augmentations import Albumentations, augment_hsv, copy_paste, letterbox, mixup, random_perspective
-from utils.general import check_img_size, check_requirements, check_imshow, colorstr, non_max_suppression, \
-    apply_classifier, scale_coords, xyxy2xywh, strip_optimizer, set_logging, increment_path, save_one_box
+from utils.augmentations import letterbox
+from utils.general import check_img_size, check_imshow, non_max_suppression, apply_classifier, scale_boxes, set_logging, increment_path
 from utils.plots import colors, plot_one_box
-from utils.torch_utils import select_device, load_classifier, time_synchronized
+from utils.torch_utils import select_device, load_classifier, time_sync
 
 bridge = CvBridge()
 
@@ -58,7 +56,7 @@ class Camera_subscriber(Node):
         self.half &= self.device.type != 'cpu'  # half precision only supported on CUDA
 
         # Load model
-        self.model = attempt_load(weights, map_location=self.device)  # load FP32 model
+        self.model = attempt_load(weights, device=self.device)  # load FP32 model
         stride = int(self.model.stride.max())  # model stride
         imgsz = check_img_size(self.imgsz, s=stride)  # check image size
         self.names = self.model.module.names if hasattr(self.model, 'module') else self.model.names  # get class names
@@ -116,14 +114,14 @@ class Camera_subscriber(Node):
             img = img.unsqueeze(0)
 
         # Inference
-        t1 = time_synchronized()
+        t1 = time_sync()
         pred = self.model(img,
                      augment=self.augment,
                      visualize=increment_path(save_dir / 'features', mkdir=True) if self.visualize else False)[0]
 
         # Apply NMS
         pred = non_max_suppression(pred, self.conf_thres, self.iou_thres, self.classes, self.agnostic_nms, max_det=self.max_det)
-        t2 = time_synchronized()
+        t2 = time_sync()
 
         # Apply Classifier
         if self.classify:
@@ -136,7 +134,7 @@ class Camera_subscriber(Node):
 
             if len(det):
                 # Rescale boxes from img_size to im0 size
-                det[:, :4] = scale_coords(img.shape[2:], det[:, :4], img0.shape).round()
+                det[:, :4] = scale_boxes(img.shape[2:], det[:, :4], img0.shape).round()
 
                 # Print results
                 for c in det[:, -1].unique():

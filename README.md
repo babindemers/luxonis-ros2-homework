@@ -17,7 +17,7 @@ git clone git@github.com:babindemers/luxonis-ros2-homework.git
 Install the required packages for YoloV5. Torch is required with a specific to be compatible with the script.
 
 ```bash
-pip3 install tqdm seaborn pandas torchvision torch
+pip3 install tqdm seaborn pandas torchvision torch IPython
 ```
 
 Install the required ROS packages.
